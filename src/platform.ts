@@ -25,6 +25,7 @@ import { makeLogger } from "./Logger";
 
 interface DucoAccessoryContext {
   host: string;
+  type: DucoDeviceType; // Necessary for device type-specific services & characteristics.
   node: number;
   isOn: boolean;
   rotationSpeed: number;
@@ -76,6 +77,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     if (
       !accessory.context ||
       !accessory.context.host ||
+      !accessory.context.type ||
       !accessory.context.node ||
       !accessory.context.rotationSpeed
     ) {
@@ -109,6 +111,18 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     if (!service.getCharacteristic(this.api.hap.Characteristic.RotationSpeed)) {
       service.addCharacteristic(this.api.hap.Characteristic.RotationSpeed);
     }
+    switch (accessory.context.type) {
+      case DucoDeviceType.VLVCO2:
+        if (!service.getCharacteristic(this.api.hap.Characteristic.CarbonDioxideLevel)) {
+          service.addCharacteristic(this.api.hap.Characteristic.CarbonDioxideLevel);
+        }
+        break;
+      case DucoDeviceType.VLVRH:
+        if (!service.getCharacteristic(this.api.hap.Characteristic.CurrentRelativeHumidity)) {
+          service.addCharacteristic(this.api.hap.Characteristic.CurrentRelativeHumidity);
+        }
+        break;
+    }
 
     accessory
       .getService(this.api.hap.Service.AccessoryInformation)
@@ -129,6 +143,12 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
       setRotationSpeed(value) {
         service.updateCharacteristic(api.hap.Characteristic.RotationSpeed, value);
         accessory.context.rotationSpeed = value;
+      },
+      setCarbonDioxideLevel(value) {
+        service.updateCharacteristic(api.hap.Characteristic.CarbonDioxideLevel, value);
+      },
+      setCurrentRelativeHumidity(value) {
+        service.updateCharacteristic(api.hap.Characteristic.CurrentRelativeHumidity, value);
       },
       setOn(value) {
         service.updateCharacteristic(api.hap.Characteristic.On, value);
@@ -161,6 +181,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
   private createAccessory(
     UUID: string,
     name: string,
+    type: DucoDeviceType,
     ducoHost: string,
     node: number,
     isOn: boolean,
@@ -173,6 +194,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     accessory.context = {
       host: ducoHost,
       node,
+      type,
       isOn,
       rotationSpeed,
     };
@@ -228,6 +250,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
           this.log.debug("Ignoring unsupported device type:", nodeInfo);
           continue;
         }
+        const type = nodeInfo.type as DucoDeviceType;
 
         // Ignore nodes without a location, because they lead to a horrible UX.
         if (nodeInfo.location === "") {
@@ -259,6 +282,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
           accessory.context = {
             host: ducoHost,
             node,
+            type,
             isOn,
             rotationSpeed,
           };
@@ -271,13 +295,15 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
             controller,
           });
         } else {
-          const name = `${nodeInfo.location} ${getDeviceTypeLabel(nodeInfo.type as DucoDeviceType)}`;
+          const type = nodeInfo.type as DucoDeviceType;
+          const name = `${nodeInfo.location} ${getDeviceTypeLabel(type)}`;
 
           // We use the serial number as identifier data to avoid accessories changing
           // when new nodes join or the duco host changes.
           const accessory = this.createAccessory(
             UUID,
             name,
+            type,
             ducoHost,
             node,
             isOn,
