@@ -103,7 +103,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     const service =
       accessory.getService(this.api.hap.Service.Fan) ||
       accessory.addService(this.api.hap.Service.Fan);
-    service.setCharacteristic(this.api.hap.Characteristic.Name, `Duco`);
+    service.setCharacteristic(this.api.hap.Characteristic.Name, accessory.displayName);
 
     accessory
       .getService(this.api.hap.Service.AccessoryInformation)
@@ -218,6 +218,14 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
           continue;
         }
 
+        // Ignore nodes without a location, because they lead to a horrible UX.
+        if (nodeInfo.location === "") {
+          this.log.info(
+            `Ignoring node ${nodeInfo.node} because it does not have a location set. Configure a location first using the Duco Communication Print UI, then it will appear here after restarting Homebridge. Make sure the location matches one of your room names.`
+          );
+          continue;
+        }
+
         const initialVentilationLevel = getVentilationLevel(nodeInfo.overrule);
         const isOn = initialVentilationLevel === DucoVentilationLevel.HIGH;
 
@@ -250,7 +258,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
             controller,
           });
         } else {
-          const name = getDeviceTypeLabel(nodeInfo.type as DucoDeviceType);
+          const name = `${nodeInfo.location} ${getDeviceTypeLabel(nodeInfo.type as DucoDeviceType)}`;
 
           // We use the serial number as identifier data to avoid accessories changing
           // when new nodes join or the duco host changes.

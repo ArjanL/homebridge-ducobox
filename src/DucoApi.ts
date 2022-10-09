@@ -73,6 +73,8 @@ export const makeDucoApi = (host: string) => {
       type: DucoDeviceType | string;
       overrule: number;
       serialNumber: string;
+      node: number;
+      location: string;
     }> {
       const response = await request(`/nodeinfoget?node=${node}`);
       const json = await response.json();
@@ -111,6 +113,8 @@ export const makeDucoApi = (host: string) => {
         type: json.devtype,
         overrule: json.ovrl,
         serialNumber: json.serialnb,
+        node: json.node,
+        location: json.location,
       };
     },
   };
