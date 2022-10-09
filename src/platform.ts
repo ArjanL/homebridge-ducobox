@@ -12,6 +12,10 @@ import { makeDucoApi } from "./DucoApi";
 
 import { PLATFORM_NAME, PLUGIN_NAME } from "./settings";
 import {
+  DucoDeviceType,
+  getDeviceTypeLabel,
+} from "./DucoInterpretation"
+import {
   DucoController,
   DucoVentilationLevel,
   getVentilationLevel,
@@ -209,6 +213,10 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     for (const node of nodesInfo.nodes) {
       try {
         const nodeInfo = await ducoApi.getNodeInfo(node);
+        if (!Object.values(DucoDeviceType).includes(nodeInfo.type as DucoDeviceType)) {
+          this.log.debug("Ignoring unsupported device type:", nodeInfo);
+          continue;
+        }
 
         const initialVentilationLevel = getVentilationLevel(nodeInfo.overrule);
         const isOn = initialVentilationLevel === DucoVentilationLevel.HIGH;
@@ -242,8 +250,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
             controller,
           });
         } else {
-          // Only if there are multiple nodes we add the number of the node to the name.
-          const name = nodesInfo.nodes.length === 1 ? `DUCO` : `DUCO #${node}`;
+          const name = getDeviceTypeLabel(nodeInfo.type as DucoDeviceType);
 
           // We use the serial number as identifier data to avoid accessories changing
           // when new nodes join or the duco host changes.

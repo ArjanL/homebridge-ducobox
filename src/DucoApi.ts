@@ -1,5 +1,8 @@
 import fetch from "node-fetch";
 import AbortController from "abort-controller";
+import {
+  DucoDeviceType
+} from "./DucoInterpretation"
 
 export type DucoApi = ReturnType<typeof makeDucoApi>;
 
@@ -66,7 +69,8 @@ export const makeDucoApi = (host: string) => {
     },
 
     async getNodeInfo(node: number): Promise<{
-      type: "BOX" | unknown;
+      // Robustness: new device types may be added, so a arbitrary strings.
+      type: DucoDeviceType | string;
       overrule: number;
       serialNumber: string;
     }> {
