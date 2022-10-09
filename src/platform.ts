@@ -27,6 +27,7 @@ interface DucoAccessoryContext {
   host: string;
   node: number;
   isOn: boolean;
+  rotationSpeed: number;
 }
 
 type DucoAccessory = PlatformAccessory<DucoAccessoryContext>;
@@ -75,7 +76,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     if (
       !accessory.context ||
       !accessory.context.host ||
-      !accessory.context.node
+      !accessory.context.node ||
+      !accessory.context.rotationSpeed
     ) {
       this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
         accessory,
@@ -104,6 +106,9 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
       accessory.getService(this.api.hap.Service.Fan) ||
       accessory.addService(this.api.hap.Service.Fan);
     service.setCharacteristic(this.api.hap.Characteristic.Name, accessory.displayName);
+    if (!service.getCharacteristic(this.api.hap.Characteristic.RotationSpeed)) {
+      service.addCharacteristic(this.api.hap.Characteristic.RotationSpeed);
+    }
 
     accessory
       .getService(this.api.hap.Service.AccessoryInformation)
@@ -121,6 +126,10 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
       node: accessory.context.node,
       isInitiallyOn: accessory.context.isOn,
       logger,
+      setRotationSpeed(value) {
+        service.updateCharacteristic(api.hap.Characteristic.RotationSpeed, value);
+        accessory.context.rotationSpeed = value;
+      },
       setOn(value) {
         service.updateCharacteristic(api.hap.Characteristic.On, value);
         accessory.context.isOn = value;
@@ -154,7 +163,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     name: string,
     ducoHost: string,
     node: number,
-    isOn: boolean
+    isOn: boolean,
+    rotationSpeed: number,
   ) {
     const accessory = new this.api.platformAccessory<DucoAccessoryContext>(
       name,
@@ -164,6 +174,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
       host: ducoHost,
       node,
       isOn,
+      rotationSpeed,
     };
     this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
       accessory,
@@ -228,6 +239,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
 
         const initialVentilationLevel = getVentilationLevel(nodeInfo.overrule);
         const isOn = initialVentilationLevel === DucoVentilationLevel.HIGH;
+        const rotationSpeed = nodeInfo.actl;
 
         const UUID = this.createAccessoryIdentifier(nodeInfo.serialNumber);
         const bundle = this.bundles.get(UUID);
@@ -248,6 +260,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
             host: ducoHost,
             node,
             isOn,
+            rotationSpeed,
           };
 
           existingController.cleanUp();
@@ -267,7 +280,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
             name,
             ducoHost,
             node,
-            isOn
+            isOn,
+            rotationSpeed
           );
 
           const controller = this.createController(accessory);

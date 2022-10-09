@@ -75,6 +75,7 @@ export const makeDucoApi = (host: string) => {
       serialNumber: string;
       node: number;
       location: string;
+      actl: number;
     }> {
       const response = await request(`/nodeinfoget?node=${node}`);
       const json = await response.json();
@@ -115,6 +116,8 @@ export const makeDucoApi = (host: string) => {
         serialNumber: json.serialnb,
         node: json.node,
         location: json.location,
+        // Actual fan speed.
+        actl: json.actl,
       };
     },
   };

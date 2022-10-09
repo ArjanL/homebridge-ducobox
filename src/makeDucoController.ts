@@ -23,6 +23,7 @@ interface DucoControllerProps {
   node: number;
   // This is called when the controller notices the ventilation level changed.
   setOn: (value: boolean) => void;
+  setRotationSpeed: (value: number) => void;
   flagAsNotResponding: () => void;
   ducoApi: DucoApi;
   isInitiallyOn: boolean;
@@ -38,6 +39,7 @@ export const makeDucoController = ({
   logger,
   node,
   setOn,
+  setRotationSpeed,
   flagAsNotResponding,
   ducoApi,
   isInitiallyOn,
@@ -47,6 +49,8 @@ export const makeDucoController = ({
   const refreshVentilationLevel = async () => {
     try {
       const nodeInfo = await ducoApi.getNodeInfo(node);
+
+      setRotationSpeed(nodeInfo.actl);
 
       const level = getVentilationLevel(nodeInfo.overrule);
 
