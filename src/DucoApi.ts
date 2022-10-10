@@ -1,3 +1,4 @@
+import http from 'node:http';
 import fetch from "node-fetch";
 import AbortController from "abort-controller";
 import {
@@ -6,10 +7,17 @@ import {
 
 export type DucoApi = ReturnType<typeof makeDucoApi>;
 
+const ducoCommunicationPrintHttpAgent = new http.Agent({
+  // Empirically, it seems the DucoBox Communication Print cannot handle >2
+  // concurrent requests.
+  maxSockets: 2,
+});
+
 export const makeDucoApi = (host: string) => {
   const request = async (url: string) => {
     const response = await fetch(`http://${host}${url}`, {
       timeout: 1000 * 10,
+      agent: ducoCommunicationPrintHttpAgent,
     });
     if (!response.ok) {
       throw new Error(
