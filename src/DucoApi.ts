@@ -8,23 +8,15 @@ export type DucoApi = ReturnType<typeof makeDucoApi>;
 
 export const makeDucoApi = (host: string) => {
   const request = async (url: string) => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => {
-      controller.abort();
-    }, 1000 * 10);
-    try {
-      const response = await fetch(`http://${host}${url}`, {
-        signal: controller.signal,
-      });
-      if (!response.ok) {
-        throw new Error(
-          `Receive invalid HTTP response ${response.status} when calling ${host}${url}`
-        );
-      }
-      return response;
-    } finally {
-      clearTimeout(timeout);
+    const response = await fetch(`http://${host}${url}`, {
+      timeout: 1000 * 10,
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Receive invalid HTTP response ${response.status} when calling ${host}${url}`
+      );
     }
+    return response;
   };
 
   return {
