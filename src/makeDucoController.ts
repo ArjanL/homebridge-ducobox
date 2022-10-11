@@ -21,6 +21,7 @@ interface DucoControllerProps {
   logger: Logger;
   host: string;
   node: number;
+  getControllerCount: () => number;
   // This is called when the controller notices the ventilation level changed.
   setOn: (value: boolean) => void;
   setRotationSpeed: (value: number) => void;
@@ -34,12 +35,10 @@ interface DucoControllerProps {
 export const getVentilationLevel = (overrule: number) =>
   ventilationLevels[overrule];
 
-// TODO: can we move this refresh interval to the platform config?
-const VENTIONAL_LEVEL_REFRESH_INTERVAL = 1000 * 60;
-
 export const makeDucoController = ({
   logger,
   node,
+  getControllerCount,
   setOn,
   setRotationSpeed,
   setCarbonDioxideLevel,
@@ -50,9 +49,31 @@ export const makeDucoController = ({
 }: DucoControllerProps) => {
   let ventilationLevel: DucoVentilationLevel | undefined = undefined;
 
+  let intervalBasedOnControllerCount: number = 0;
+  const computeInterval = (): number => {
+    intervalBasedOnControllerCount = getControllerCount();
+    return intervalBasedOnControllerCount * 4 * 1000;
+  };
+  let interval: NodeJS.Timeout;
+  // The interval may be restarted for two reasons:
+  // 1. Immediately after a write.
+  // 2. The controller count has changed.
+  const restartInterval = () => {
+    clearInterval(interval);
+    interval = setInterval(
+      refreshVentilationLevel,
+      computeInterval()
+    );
+  };
+
   const refreshVentilationLevel = async () => {
     try {
       const nodeInfo = await ducoApi.getNodeInfo(node);
+
+      // Restart the interval if the controller count has changed.
+      if (getControllerCount() !== intervalBasedOnControllerCount) {
+        restartInterval();
+      }
 
       // Characteristics applying to all Duco device types.
       setRotationSpeed(nodeInfo.actl);
@@ -101,10 +122,7 @@ export const makeDucoController = ({
     }
   };
 
-  let interval = setInterval(
-    refreshVentilationLevel,
-    VENTIONAL_LEVEL_REFRESH_INTERVAL
-  );
+  restartInterval();
 
   const onSet = async (val: boolean) => {
     const newVentilationLevel = val
@@ -134,11 +152,7 @@ export const makeDucoController = ({
 
       // We re-start the interval just to avoid checking the ventilation level
       // again a second after we just updated it.
-      clearInterval(interval);
-      interval = setInterval(
-        refreshVentilationLevel,
-        VENTIONAL_LEVEL_REFRESH_INTERVAL
-      );
+      restartInterval();
     } catch (e) {
       logger.error(
         `Could not set ventilation level to '${ventilationLevel}' because of an error`,

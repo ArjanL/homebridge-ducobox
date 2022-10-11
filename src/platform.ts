@@ -42,6 +42,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
   public readonly bundles = new Map<string, AccessoryBundle>();
   private discoverRetryTimeout: NodeJS.Timeout | undefined = undefined;
 
+  private controllerCount: number = 0;
+
   constructor(
     public readonly log: Logger,
     public readonly config: PlatformConfig,
@@ -69,6 +71,10 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
           .removeOnSet();
       });
     });
+  }
+
+  getControllerCount(): number {
+    return this.controllerCount;
   }
 
   configureAccessory(accessory: DucoAccessory) {
@@ -103,6 +109,9 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
       `Loading accessory '${accessory.displayName}' (${accessory.context.host}#${accessory.context.node} ${accessory.context.isOn}) from cache`
     );
 
+    // Track the number of controllers: this impacts the update frequency.
+    this.controllerCount++;
+
     const api = this.api;
     const service =
       accessory.getService(this.api.hap.Service.Fan) ||
@@ -134,12 +143,16 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
       `[${accessory.context.host}#${accessory.context.node}]`
     );
     const ducoApi = makeDucoApi(accessory.context.host);
+    const ducoPlatform = this;
     const controller = makeDucoController({
       ducoApi,
       host: accessory.context.host,
       node: accessory.context.node,
       isInitiallyOn: accessory.context.isOn,
       logger,
+      getControllerCount() {
+        return ducoPlatform.getControllerCount();
+      },
       setRotationSpeed(value) {
         service.updateCharacteristic(api.hap.Characteristic.RotationSpeed, value);
         accessory.context.rotationSpeed = value;

@@ -13,11 +13,26 @@ const ducoCommunicationPrintHttpAgent = new http.Agent({
   maxSockets: 2,
 });
 
+/*
+function getRequestQueueLength(): number {
+  const a = ducoCommunicationPrintHttpAgent.requests;
+  const keys = Object.keys(a);
+  if (keys.length === 0) {
+    return 0;
+  }
+
+  const ducoQueue = a[keys[0]];
+  return typeof ducoQueue !== 'undefined' ? ducoQueue.length : -1;
+};
+*/
+
 export const makeDucoApi = (host: string) => {
-  const request = async (url: string) => {
+  const request = async (url: string, isWrite: boolean = false) => {
+    // if (!isWrite) { console.log('request queue size', Object.keys(ducoCommunicationPrintHttpAgent.requests), getRequestQueueLength()); }
     const response = await fetch(`http://${host}${url}`, {
       timeout: 1000 * 10,
-      agent: ducoCommunicationPrintHttpAgent,
+      // Use the agent to queue read requests; write requests should happen instantly.
+      agent: isWrite ? undefined : ducoCommunicationPrintHttpAgent,
     });
     if (!response.ok) {
       throw new Error(
@@ -57,7 +72,8 @@ export const makeDucoApi = (host: string) => {
 
     async updateOverrule(node: number, value: number): Promise<void> {
       const response = await request(
-        `/nodesetoverrule?node=${node}&value=${value}`
+        `/nodesetoverrule?node=${node}&value=${value}`,
+        true
       );
       const result = await response.text();
       const isSuccess = result === `SUCCESS`;
