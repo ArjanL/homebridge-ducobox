@@ -1,3 +1,8 @@
+import {
+  Characteristic,
+  CharacteristicValue,
+} from "hap-nodejs";
+
 /**
  * Supported device types.
  */
@@ -15,5 +20,20 @@ const deviceTypeLabels: { [key in DucoDeviceType]: string } = {
   VLVRH: "Humidity Control Valve",
   VLVCO2: "CO2 Control Valve",
 };
-export const getDeviceTypeLabel = (deviceType: DucoDeviceType) =>
+export const getDeviceTypeLabel = (deviceType: DucoDeviceType): string =>
   deviceTypeLabels[deviceType];
+
+/**
+ * Supported device modes.
+ */
+export enum DucoDeviceMode {
+  // AUTOmatic.
+  AUTO = "AUTO",
+  // EXTerNal override (?).
+  EXTN = "EXTN",
+}
+const deviceModeToTargetFanState: { [key in DucoDeviceMode]: CharacteristicValue } = {
+  AUTO: Characteristic.TargetFanState.AUTO,
+  EXTN: Characteristic.TargetFanState.MANUAL,
+};
+export const getTargetFanState = (mode: DucoDeviceMode): CharacteristicValue => deviceModeToTargetFanState[mode]

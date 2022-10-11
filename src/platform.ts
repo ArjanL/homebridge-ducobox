@@ -14,6 +14,8 @@ import { PLATFORM_NAME, PLUGIN_NAME } from "./settings";
 import {
   DucoDeviceType,
   getDeviceTypeLabel,
+  DucoDeviceMode,
+  getTargetFanState,
 } from "./DucoInterpretation"
 import {
   DucoController,
@@ -114,9 +116,10 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
 
     const api = this.api;
     const service =
-      accessory.getService(this.api.hap.Service.Fan) ||
-      accessory.addService(this.api.hap.Service.Fan);
+      accessory.getService(this.api.hap.Service.Fanv2) ||
+      accessory.addService(this.api.hap.Service.Fanv2);
     service.setCharacteristic(this.api.hap.Characteristic.Name, accessory.displayName);
+    service.setCharacteristic(this.api.hap.Characteristic.TargetFanState, this.api.hap.Characteristic.TargetFanState.AUTO);
     if (!service.getCharacteristic(this.api.hap.Characteristic.RotationSpeed)) {
       service.addCharacteristic(this.api.hap.Characteristic.RotationSpeed);
     }
@@ -156,6 +159,9 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
       setRotationSpeed(value) {
         service.updateCharacteristic(api.hap.Characteristic.RotationSpeed, value);
         accessory.context.rotationSpeed = value;
+      },
+      setTargetFanState(value) {
+        service.updateCharacteristic(api.hap.Characteristic.TargetFanState, getTargetFanState(value as DucoDeviceMode));
       },
       setCarbonDioxideLevel(value) {
         service.updateCharacteristic(api.hap.Characteristic.CarbonDioxideLevel, value);

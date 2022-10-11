@@ -25,6 +25,7 @@ interface DucoControllerProps {
   // This is called when the controller notices the ventilation level changed.
   setOn: (value: boolean) => void;
   setRotationSpeed: (value: number) => void;
+  setTargetFanState: (value: string) => void;
   setCarbonDioxideLevel: (value: number) => void;
   setCurrentRelativeHumidity: (value: number) => void;
   flagAsNotResponding: () => void;
@@ -41,6 +42,7 @@ export const makeDucoController = ({
   getControllerCount,
   setOn,
   setRotationSpeed,
+  setTargetFanState,
   setCarbonDioxideLevel,
   setCurrentRelativeHumidity,
   flagAsNotResponding,
@@ -77,6 +79,7 @@ export const makeDucoController = ({
 
       // Characteristics applying to all Duco device types.
       setRotationSpeed(nodeInfo.actl);
+      setTargetFanState(nodeInfo.mode);
 
       // Device-type specific characteristics.
       switch (nodeInfo.type) {

@@ -2,7 +2,8 @@ import http from 'node:http';
 import fetch from "node-fetch";
 import AbortController from "abort-controller";
 import {
-  DucoDeviceType
+  DucoDeviceType,
+  DucoDeviceMode,
 } from "./DucoInterpretation"
 
 export type DucoApi = ReturnType<typeof makeDucoApi>;
@@ -93,6 +94,7 @@ export const makeDucoApi = (host: string) => {
       location: string;
       co2: number;
       rh: number;
+      mode: DucoDeviceMode;
       actl: number;
     }> {
       const response = await request(`/nodeinfoget?node=${node}`);
@@ -137,6 +139,7 @@ export const makeDucoApi = (host: string) => {
         // Sensor: CO2 or RH.
         co2: json.co2,
         rh: json.rh,
+        mode: json.mode as DucoDeviceMode,
         // Actual fan speed.
         actl: json.actl,
       };
