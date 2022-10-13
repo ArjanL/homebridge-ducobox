@@ -91,6 +91,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
       !accessory.context.host ||
       !accessory.context.type ||
       !accessory.context.node ||
+      !accessory.context.config ||
       !accessory.context.rotationSpeed
     ) {
       this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
