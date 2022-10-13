@@ -144,5 +144,35 @@ export const makeDucoApi = (host: string) => {
         actl: json.actl,
       };
     },
+
+    async getNodeConfig(node: number): Promise<{
+      node: number;
+      autoMin: number;
+      autoMax: number;
+      capacity: number;
+      manual1: number;
+      manual2: number;
+      manual3: number;
+      manualTimeout: number;
+      location: string;
+    }> {
+
+      const response = await request(`/nodeconfigget?node=${node}`);
+      const json = await response.json();
+      return {
+        node: json.node,
+        autoMin: json.AutoMin.Val,
+        autoMax: json.AutoMax.Val,
+        capacity: json.Capacity.Val,
+        manual1: json.Manual1.Val,
+        manual2: json.Manual2.Val,
+        manual3: json.Manual3.Val,
+        manualTimeout: json.ManualTimeout.Val,
+        location: json.location,
+        // @todo: add TempDependent?
+        // @todo CO2Setpoint
+        // @todo RHSetpoint, RHDelta
+      };
+    },
   };
 };

@@ -24,7 +24,7 @@ export const getDeviceTypeLabel = (deviceType: DucoDeviceType): string =>
   deviceTypeLabels[deviceType];
 
 /**
- * Supported device modes.
+ * Supported device modes, for the TargetFanState characteristic.
  */
 export enum DucoDeviceMode {
   // AUTOmatic.
@@ -37,3 +37,17 @@ const deviceModeToTargetFanState: { [key in DucoDeviceMode]: CharacteristicValue
   EXTN: Characteristic.TargetFanState.MANUAL,
 };
 export const getTargetFanState = (mode: DucoDeviceMode): CharacteristicValue => deviceModeToTargetFanState[mode]
+
+/**
+ * Current Fan State.
+ */
+export const getCurrentFanState = (autoMin: number, actual: number): CharacteristicValue => {
+  const errorMargin = 2;
+  if (actual > autoMin + errorMargin) {
+    return Characteristic.CurrentFanState.BLOWING_AIR;
+  }
+  if (autoMin - errorMargin <= actual && actual <= autoMin + errorMargin) {
+    return Characteristic.CurrentFanState.IDLE;
+  }
+  return Characteristic.CurrentFanState.INACTIVE;
+};

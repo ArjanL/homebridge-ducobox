@@ -16,6 +16,7 @@ import {
   getDeviceTypeLabel,
   DucoDeviceMode,
   getTargetFanState,
+  getCurrentFanState,
 } from "./DucoInterpretation"
 import {
   DucoController,
@@ -29,6 +30,11 @@ interface DucoAccessoryContext {
   host: string;
   type: DucoDeviceType; // Necessary for device type-specific services & characteristics.
   node: number;
+  // Configuration.
+  autoMin: number;
+  autoMax: number;
+  capacity: number;
+  // State.
   isOn: boolean;
   rotationSpeed: number;
 }
@@ -157,6 +163,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
         return ducoPlatform.getControllerCount();
       },
       setRotationSpeed(value) {
+        service.updateCharacteristic(api.hap.Characteristic.CurrentFanState, getCurrentFanState(accessory.context.autoMin, value));
         service.updateCharacteristic(api.hap.Characteristic.RotationSpeed, value);
         accessory.context.rotationSpeed = value;
       },
@@ -203,6 +210,11 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     type: DucoDeviceType,
     ducoHost: string,
     node: number,
+    // Configuration.
+    autoMin: number,
+    autoMax: number,
+    capacity: number,
+    // State.
     isOn: boolean,
     rotationSpeed: number,
   ) {
@@ -214,6 +226,11 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
       host: ducoHost,
       node,
       type,
+      // Configuration.
+      autoMin,
+      autoMax,
+      capacity,
+      // State.
       isOn,
       rotationSpeed,
     };
@@ -279,6 +296,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
           continue;
         }
 
+        const nodeConfig = await ducoApi.getNodeConfig(node);
+
         const initialVentilationLevel = getVentilationLevel(nodeInfo.overrule);
         const isOn = initialVentilationLevel === DucoVentilationLevel.HIGH;
         const rotationSpeed = nodeInfo.actl;
@@ -302,6 +321,11 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
             host: ducoHost,
             node,
             type,
+            // Configuration.
+            autoMin: nodeConfig.autoMin,
+            autoMax: nodeConfig.autoMax,
+            capacity: nodeConfig.capacity,
+            // State.
             isOn,
             rotationSpeed,
           };
@@ -325,6 +349,11 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
             type,
             ducoHost,
             node,
+            // Configuration.
+            nodeConfig.autoMin,
+            nodeConfig.autoMax,
+            nodeConfig.capacity,
+            // State.
             isOn,
             rotationSpeed
           );
