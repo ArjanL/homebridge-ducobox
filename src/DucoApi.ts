@@ -4,6 +4,10 @@ import AbortController from "abort-controller";
 import {
   DucoDeviceType,
   DucoDeviceMode,
+  DucoNodeConfig,
+  DucoNodeConfigBOX,
+  DucoNodeConfigVLVRH,
+  DucoNodeConfigVLVCO2,
 } from "./DucoInterpretation"
 
 export type DucoApi = ReturnType<typeof makeDucoApi>;
@@ -145,21 +149,10 @@ export const makeDucoApi = (host: string) => {
       };
     },
 
-    async getNodeConfig(node: number): Promise<{
-      node: number;
-      autoMin: number;
-      autoMax: number;
-      capacity: number;
-      manual1: number;
-      manual2: number;
-      manual3: number;
-      manualTimeout: number;
-      location: string;
-    }> {
-
+    async getNodeConfig(node: number): Promise<Readonly<DucoNodeConfig>> {
       const response = await request(`/nodeconfigget?node=${node}`);
       const json = await response.json();
-      return {
+      var config = {
         node: json.node,
         autoMin: json.AutoMin.Val,
         autoMax: json.AutoMax.Val,
@@ -169,10 +162,29 @@ export const makeDucoApi = (host: string) => {
         manual3: json.Manual3.Val,
         manualTimeout: json.ManualTimeout.Val,
         location: json.location,
-        // @todo: add TempDependent?
-        // @todo CO2Setpoint
-        // @todo RHSetpoint, RHDelta
       };
+      if (json.RHSetpoint) {
+        return {
+          type: DucoDeviceType.VLVRH,
+          ...config,
+          setpoint: json.RHSetpoint.Val,
+          delta: json.RHDelta.Val,
+        } as DucoNodeConfigVLVRH;
+      }
+      else if (json.CO2SetPoint) {
+        return {
+          type: DucoDeviceType.VLVCO2,
+          ...config,
+          setpoint: json.CO2Setpoint.Val,
+          tempDependent: json.TempDependent.Val,
+        } as DucoNodeConfigVLVCO2;
+      }
+      else {
+        return {
+          type: DucoDeviceType.BOX,
+          ...config,
+        } as DucoNodeConfigBOX;
+      }
     },
   };
 };

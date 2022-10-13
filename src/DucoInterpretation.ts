@@ -4,6 +4,36 @@ import {
 } from "hap-nodejs";
 
 /**
+ * Per-device type node configuration.
+ */
+export type DucoNodeConfig = DucoNodeConfigBOX | DucoNodeConfigVLVRH | DucoNodeConfigVLVCO2;
+export type DucoNodeConfigCommon = {
+  type: DucoDeviceType;
+  node: number;
+  autoMin: number;
+  autoMax: number;
+  capacity: number;
+  manual1: number;
+  manual2: number;
+  manual3: number;
+  manualTimeout: number;
+  location: string;
+}
+export type DucoNodeConfigBOX = DucoNodeConfigCommon & {
+  type: DucoDeviceType.BOX;
+}
+export type DucoNodeConfigVLVRH = DucoNodeConfigCommon & {
+  type: DucoDeviceType.VLVRH;
+  setpoint: number;
+  delta: number;
+}
+export type DucoNodeConfigVLVCO2 = DucoNodeConfigCommon & {
+  type: DucoDeviceType.VLVCO2;
+  setpoint: number;
+  tempDependent: number;
+}
+
+/**
  * Supported device types.
  */
 export enum DucoDeviceType {
