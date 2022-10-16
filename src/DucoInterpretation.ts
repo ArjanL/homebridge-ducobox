@@ -68,16 +68,43 @@ const deviceModeToTargetFanState: { [key in DucoDeviceMode]: CharacteristicValue
 };
 export const getTargetFanState = (mode: DucoDeviceMode): CharacteristicValue => deviceModeToTargetFanState[mode]
 
+const errorMargin = 5;
+
 /**
- * Current Fan State.
+ * Active.
  */
-export const getCurrentFanState = (autoMin: number, actual: number): CharacteristicValue => {
-  const errorMargin = 2;
+export const getActive = (config: DucoNodeConfig, actual: number): CharacteristicValue => {
+  const autoMin = config.autoMin;
   if (actual > autoMin + errorMargin) {
-    return Characteristic.CurrentFanState.BLOWING_AIR;
+    return Characteristic.Active.ACTIVE;
+  }
+  return Characteristic.Active.INACTIVE;
+};
+
+/**
+ * Current Humidifier/Dehumidifier State.
+ */
+export const getCurrentHumidifierDehumidifierState = (config: DucoNodeConfigVLVRH, actual: number): CharacteristicValue => {
+  const autoMin = config.autoMin;
+  if (actual > autoMin + errorMargin) {
+    return Characteristic.CurrentHumidifierDehumidifierState.DEHUMIDIFYING;
   }
   if (autoMin - errorMargin <= actual && actual <= autoMin + errorMargin) {
-    return Characteristic.CurrentFanState.IDLE;
+    return Characteristic.CurrentHumidifierDehumidifierState.IDLE;
   }
-  return Characteristic.CurrentFanState.INACTIVE;
+  return Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
+};
+
+/**
+ * Current Air Purifier State.
+ */
+export const getCurrentAirPurifierState = (config: DucoNodeConfigVLVCO2, actual: number): CharacteristicValue => {
+  const autoMin = config.autoMin;
+  if (actual > autoMin + errorMargin) {
+    return Characteristic.CurrentAirPurifierState.PURIFYING_AIR;
+  }
+  if (autoMin - errorMargin <= actual && actual <= autoMin + errorMargin) {
+    return Characteristic.CurrentAirPurifierState.IDLE;
+  }
+  return Characteristic.CurrentAirPurifierState.INACTIVE;
 };

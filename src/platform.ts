@@ -6,6 +6,8 @@ import {
   PlatformConfig,
   Service,
   Characteristic,
+  CharacteristicValue,
+  Perms,
 } from "homebridge";
 import { makeBonjour } from "./Bonjour";
 import { makeDucoApi } from "./DucoApi";
@@ -13,11 +15,15 @@ import { makeDucoApi } from "./DucoApi";
 import { PLATFORM_NAME, PLUGIN_NAME } from "./settings";
 import {
   DucoNodeConfig,
+  DucoNodeConfigVLVRH,
+  DucoNodeConfigVLVCO2,
   DucoDeviceType,
   getDeviceTypeLabel,
   DucoDeviceMode,
   getTargetFanState,
-  getCurrentFanState,
+  getActive,
+  getCurrentHumidifierDehumidifierState,
+  getCurrentAirPurifierState,
 } from "./DucoInterpretation"
 import {
   DucoController,
@@ -71,8 +77,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
         controller.cleanUp();
 
         accessory
-          .getService(this.api.hap.Service.Fan)
-          ?.getCharacteristic(this.api.hap.Characteristic.On)
+          .getService(this.api.hap.Service.Fanv2)
+          ?.getCharacteristic(this.api.hap.Characteristic.Active)
           .removeOnGet()
           .removeOnSet();
       });
@@ -111,6 +117,19 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     });
   }
 
+  private makeReadonly(c: Characteristic, v?: CharacteristicValue) {
+    const readonlyPerms = [
+      Perms.PAIRED_READ,
+      Perms.NOTIFY,
+    ];
+    c.setProps({perms: c.props.perms.filter(function (p) {
+      return readonlyPerms.includes(p);
+    })});
+    if (v !== undefined) {
+      c.updateValue(v);
+    }
+  }
+
   private createController(accessory: DucoAccessory) {
     this.log.info(
       `Loading accessory '${accessory.displayName}' (${accessory.context.host}#${accessory.context.node} ${accessory.context.isOn}) from cache`
@@ -120,24 +139,69 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     this.controllerCount++;
 
     const api = this.api;
+    let serviceType = this.api.hap.Service.Fanv2;
+    switch (accessory.context.type) {
+      case DucoDeviceType.BOX:
+      case DucoDeviceType.VLVCO2:
+        serviceType = this.api.hap.Service.AirPurifier;
+        break;
+      case DucoDeviceType.VLVRH:
+        serviceType = this.api.hap.Service.HumidifierDehumidifier;
+        break;
+      default:
+        throw new Error('Unknown Duco device type');
+    }
     const service =
-      accessory.getService(this.api.hap.Service.Fanv2) ||
-      accessory.addService(this.api.hap.Service.Fanv2);
+      accessory.getService(serviceType) ||
+      accessory.addService(serviceType);
     service.setCharacteristic(this.api.hap.Characteristic.Name, accessory.displayName);
-    service.setCharacteristic(this.api.hap.Characteristic.TargetFanState, this.api.hap.Characteristic.TargetFanState.AUTO);
     if (!service.getCharacteristic(this.api.hap.Characteristic.RotationSpeed)) {
       service.addCharacteristic(this.api.hap.Characteristic.RotationSpeed);
     }
+    this.makeReadonly(service.getCharacteristic(this.api.hap.Characteristic.RotationSpeed));
+    this.makeReadonly(service.getCharacteristic(this.api.hap.Characteristic.Active));
     switch (accessory.context.type) {
+      case DucoDeviceType.BOX:
+        // Static values.
+        this.makeReadonly(
+          service.getCharacteristic(this.api.hap.Characteristic.TargetAirPurifierState),
+          this.api.hap.Characteristic.TargetAirPurifierState.AUTO
+        );
+        // Dynamic values.
+        this.makeReadonly(
+          service.getCharacteristic(this.api.hap.Characteristic.CurrentAirPurifierState),
+        );
+        break;
       case DucoDeviceType.VLVCO2:
+        // Static values.
+        this.makeReadonly(
+          service.getCharacteristic(this.api.hap.Characteristic.TargetAirPurifierState),
+          this.api.hap.Characteristic.TargetAirPurifierState.AUTO
+        );
+        const co2Config = <DucoNodeConfigVLVCO2>accessory.context.config;
         if (!service.getCharacteristic(this.api.hap.Characteristic.CarbonDioxideLevel)) {
           service.addCharacteristic(this.api.hap.Characteristic.CarbonDioxideLevel);
         }
+        // Dynamic values.
+        this.makeReadonly(
+          service.getCharacteristic(this.api.hap.Characteristic.CurrentAirPurifierState),
+        );
         break;
       case DucoDeviceType.VLVRH:
-        if (!service.getCharacteristic(this.api.hap.Characteristic.CurrentRelativeHumidity)) {
-          service.addCharacteristic(this.api.hap.Characteristic.CurrentRelativeHumidity);
-        }
+        // Static values.
+        this.makeReadonly(
+          service.getCharacteristic(this.api.hap.Characteristic.TargetHumidifierDehumidifierState),
+          this.api.hap.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER
+        );
+        const rhConfig = <DucoNodeConfigVLVRH>accessory.context.config;
+        this.makeReadonly(
+          service.getCharacteristic(this.api.hap.Characteristic.RelativeHumidityDehumidifierThreshold),
+          rhConfig.setpoint
+        );
+        // Dynamic values.
+        this.makeReadonly(
+          service.getCharacteristic(this.api.hap.Characteristic.CurrentHumidifierDehumidifierState),
+        );
         break;
     }
 
@@ -162,12 +226,25 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
         return ducoPlatform.getControllerCount();
       },
       setRotationSpeed(value) {
-        service.updateCharacteristic(api.hap.Characteristic.CurrentFanState, getCurrentFanState(accessory.context.config.autoMin, value));
+        switch (accessory.context.type) {
+          case DucoDeviceType.VLVRH:
+            service.updateCharacteristic(api.hap.Characteristic.CurrentHumidifierDehumidifierState, getCurrentHumidifierDehumidifierState(<DucoNodeConfigVLVRH>accessory.context.config, value));
+            break;
+          case DucoDeviceType.BOX:
+          case DucoDeviceType.VLVCO2:
+            service.updateCharacteristic(api.hap.Characteristic.CurrentAirPurifierState, getCurrentAirPurifierState(<DucoNodeConfigVLVCO2>accessory.context.config, value));
+            break;
+        }
         service.updateCharacteristic(api.hap.Characteristic.RotationSpeed, value);
+        service.updateCharacteristic(api.hap.Characteristic.Active, getActive(accessory.context.config, value));
         accessory.context.rotationSpeed = value;
       },
       setTargetFanState(value) {
-        service.updateCharacteristic(api.hap.Characteristic.TargetFanState, getTargetFanState(value as DucoDeviceMode));
+        if (accessory.context.type === DucoDeviceType.VLVRH) {
+        }
+        else {
+          service.updateCharacteristic(api.hap.Characteristic.TargetFanState, getTargetFanState(value as DucoDeviceMode));
+        }
       },
       setCarbonDioxideLevel(value) {
         service.updateCharacteristic(api.hap.Characteristic.CarbonDioxideLevel, value);
