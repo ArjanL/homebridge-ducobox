@@ -161,7 +161,7 @@ export const makeDucoApi = (host: string) => {
         manual2: json.Manual2.Val,
         manual3: json.Manual3.Val,
         manualTimeout: json.ManualTimeout.Val,
-        location: json.location,
+        location: json.Location,
       };
       if (json.RHSetpoint) {
         return {
@@ -171,7 +171,7 @@ export const makeDucoApi = (host: string) => {
           delta: json.RHDelta.Val,
         } as DucoNodeConfigVLVRH;
       }
-      else if (json.CO2SetPoint) {
+      else if (json.CO2Setpoint) {
         return {
           type: DucoDeviceType.VLVCO2,
           ...config,
