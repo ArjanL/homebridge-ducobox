@@ -1,6 +1,8 @@
 import {
   Characteristic,
   CharacteristicValue,
+  Service,
+  WithUUID,
 } from "hap-nodejs";
 
 /**
@@ -44,7 +46,13 @@ export enum DucoDeviceType {
   // A valve reacting to CO2.
   VLVCO2 = "VLVCO2",
 }
-
+const deviceTypePrimaryServiceTypes: { [key in DucoDeviceType]: WithUUID<typeof Service> } = {
+  BOX: Service.AirPurifier,
+  VLVCO2: Service.AirPurifier,
+  VLVRH: Service.HumidifierDehumidifier,
+};
+export const getDeviceTypePrimaryServiceType = (deviceType: DucoDeviceType): WithUUID<typeof Service> =>
+  deviceTypePrimaryServiceTypes[deviceType];
 const deviceTypeLabels: { [key in DucoDeviceType]: string } = {
   BOX: "DucoBox",
   VLVRH: "Humidity Control Valve",

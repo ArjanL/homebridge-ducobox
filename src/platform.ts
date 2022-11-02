@@ -18,6 +18,7 @@ import {
   DucoNodeConfigVLVRH,
   DucoNodeConfigVLVCO2,
   DucoDeviceType,
+  getDeviceTypePrimaryServiceType,
   getDeviceTypeLabel,
   DucoDeviceMode,
   getTargetFanState,
@@ -79,7 +80,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
         controller.cleanUp();
 
         accessory
-          .getService(this.api.hap.Service.Fanv2)
+          .getService(getDeviceTypePrimaryServiceType(accessory.context.type))
           ?.getCharacteristic(this.api.hap.Characteristic.Active)
           .removeOnGet()
           .removeOnSet();
@@ -141,21 +142,11 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     this.controllerCount++;
 
     const api = this.api;
-    let serviceType = this.api.hap.Service.Fanv2;
-    switch (accessory.context.type) {
-      case DucoDeviceType.BOX:
-      case DucoDeviceType.VLVCO2:
-        serviceType = this.api.hap.Service.AirPurifier;
-        break;
-      case DucoDeviceType.VLVRH:
-        serviceType = this.api.hap.Service.HumidifierDehumidifier;
-        break;
-      default:
-        throw new Error('Unknown Duco device type');
-    }
+    const primaryServiceType = getDeviceTypePrimaryServiceType(accessory.context.type);
     const service =
-      accessory.getService(serviceType) ||
-      accessory.addService(serviceType);
+      accessory.getService(primaryServiceType) ||
+      accessory.addService(primaryServiceType);
+    service.setPrimaryService();
     service.setCharacteristic(this.api.hap.Characteristic.Name, accessory.displayName);
     if (!service.getCharacteristic(this.api.hap.Characteristic.RotationSpeed)) {
       service.addCharacteristic(this.api.hap.Characteristic.RotationSpeed);
