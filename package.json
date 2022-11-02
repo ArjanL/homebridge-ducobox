@@ -1,18 +1,18 @@
 {
-  "displayName": "Homebridge Duco",
-  "name": "homebridge-plugin-duco",
-  "version": "1.0.0",
-  "description": "Add your DUCO ventilation control to HomeKit",
+  "displayName": "Homebridge DucoBox",
+  "name": "homebridge-plugin-ducobox",
+  "version": "0.1.0",
+  "description": "Expose your DucoBox mechanical ventilation to HomeKit",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/wimleers/homebox-duco.git"
+    "url": "git://github.com/wimleers/homebox-ducobox.git"
   },
   "bugs": {
-    "url": "https://github.com/wimleers/homebox-duco/issues"
+    "url": "https://github.com/wimleers/homebox-ducobox/issues"
   },
   "engines": {
-    "node": ">=14.18.1",
+    "node": ">=16.17.0",
     "homebridge": ">=1.5.0"
   },
   "main": "dist/index.js",
@@ -25,6 +25,7 @@
   "keywords": [
     "homebridge-plugin",
     "duco",
+    "ducobox",
     "ventilation"
   ],
   "dependencies": {
