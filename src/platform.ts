@@ -35,6 +35,8 @@ import { makeLogger } from "./Logger";
 
 interface DucoAccessoryContext {
   host: string;
+  serialNumber: string;
+  softwareVersion: string;
   type: DucoDeviceType; // Necessary for device type-specific services & characteristics.
   node: number;
   config: DucoNodeConfig;
@@ -208,7 +210,9 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     accessory
       .getService(this.api.hap.Service.AccessoryInformation)
       ?.setCharacteristic(this.api.hap.Characteristic.Manufacturer, "DUCO")
-      ?.setCharacteristic(this.api.hap.Characteristic.Model, "Silent Connect");
+      ?.setCharacteristic(this.api.hap.Characteristic.Model, getDeviceTypeLabel(accessory.context.type))
+      .setCharacteristic(this.api.hap.Characteristic.SerialNumber, accessory.context.serialNumber)
+      .setCharacteristic(this.api.hap.Characteristic.FirmwareRevision, accessory.context.softwareVersion);
 
     const logger = makeLogger(
       this.log,
@@ -282,6 +286,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
 
   private createAccessory(
     UUID: string,
+    serialNumber: string,
+    softwareVersion: string,
     name: string,
     type: DucoDeviceType,
     ducoHost: string,
@@ -297,6 +303,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     );
     accessory.context = {
       host: ducoHost,
+      serialNumber,
+      softwareVersion,
       node,
       type,
       config,
@@ -357,6 +365,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
           continue;
         }
         const type = nodeInfo.type as DucoDeviceType;
+        const serialNumber : string = nodeInfo.serialNumber;
+        const softwareVersion : string = nodeInfo.softwareVersion;
 
         // Ignore nodes without a location, because they lead to a horrible UX.
         if (nodeInfo.location === "") {
@@ -388,6 +398,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
           // host and node and need to remove the old controller and create
           // a new controller.
           accessory.context = {
+            serialNumber,
+            softwareVersion,
             host: ducoHost,
             node,
             type,
@@ -412,6 +424,8 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
           // when new nodes join or the duco host changes.
           const accessory = this.createAccessory(
             UUID,
+            serialNumber,
+            softwareVersion,
             name,
             type,
             ducoHost,

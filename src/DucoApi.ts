@@ -94,6 +94,7 @@ export const makeDucoApi = (host: string) => {
       type: DucoDeviceType | string;
       overrule: number;
       serialNumber: string;
+      softwareVersion: string;
       node: number;
       location: string;
       co2: number;
@@ -138,6 +139,7 @@ export const makeDucoApi = (host: string) => {
         type: json.devtype,
         overrule: json.ovrl,
         serialNumber: json.serialnb,
+        softwareVersion: json.swversion,
         node: json.node,
         location: json.location,
         // Sensor: CO2 or RH.
