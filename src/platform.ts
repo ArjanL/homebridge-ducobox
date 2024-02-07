@@ -136,7 +136,7 @@ export class DucoHomebridgePlatform implements DynamicPlatformPlugin {
     const primaryServiceType = getDeviceTypePrimaryServiceType(accessory.context.type);
     const service =
       accessory.getService(primaryServiceType) ||
-      accessory.addService(primaryServiceType);
+      accessory.addService(primaryServiceType, primaryServiceType.name, primaryServiceType.UUID);
     service.setPrimaryService();
     service.setCharacteristic(this.api.hap.Characteristic.Name, accessory.displayName);
     if (!service.getCharacteristic(this.api.hap.Characteristic.RotationSpeed)) {
