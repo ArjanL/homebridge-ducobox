@@ -35,6 +35,7 @@ export const makeDucoApi = (host: string) => {
   const request = async (url: string, isWrite: boolean = false) => {
     // if (!isWrite) { console.log('request queue size', Object.keys(ducoCommunicationPrintHttpAgent.requests), getRequestQueueLength()); }
     const response = await fetch(`http://${host}${url}`, {
+      signal: AbortSignal.timeout( 1000 * 10 ),
       timeout: 1000 * 10,
       // Use the agent to queue read requests; write requests should happen instantly.
       agent: isWrite ? undefined : ducoCommunicationPrintHttpAgent,
